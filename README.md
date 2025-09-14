@@ -1,12 +1,24 @@
-# React + Vite
+import { motion } from "framer-motion";
+import { useState } from "react";
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+export default function AnimatedCard() {
+  const [count, setCount] = useState(0);
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+  return (
+    <motion.div
+      className="p-6 m-4 rounded-2xl shadow-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <h1 className="text-2xl font-bold">⚡ React + Vite</h1>
+      <p className="mt-2">Fast refresh in action!</p>
+      <button
+        className="mt-4 px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200"
+        onClick={() => setCount(count + 1)}
+      >
+        Count: {count}
+      </button>
+    </motion.div>
+  );
+}
