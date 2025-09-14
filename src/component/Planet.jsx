@@ -1,58 +1,70 @@
-import React, { useMemo } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { useLoader } from "@react-three/fiber";
-import { TextureLoader } from "three";
+import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import OrbitRing from "./OrbitRing";
 
-// fallback texture
-const fallbackTexture = "/textures/default.jpg";
+function useTextureSafe(path) {
+  const [tex, setTex] = useState(null);
+  useEffect(() => {
+    if (!path) return;
+    new THREE.TextureLoader().load(
+      path,
+      (loaded) => setTex(loaded),
+      undefined,
+      () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "gray";
+        ctx.fillRect(0, 0, 64, 64);
+        setTex(new THREE.CanvasTexture(canvas));
+      }
+    );
+  }, [path]);
+  return tex;
+}
+export default function Planet({ data, onSelect }) {
+  const meshRef = useRef();
+  const angle = useRef(Math.random() * Math.PI * 2);
+  const tex = useTextureSafe(data.texture);
 
-// Map planet names to texture files
-const planetTextures = {
-  Earth: "/textures/earth.jpg",
-  Moon: "/textures/moon.jpg",
-  Sun: "/textures/sun.jpg",
-  Mars: "/textures/mars.jpg",
-  Mercury: "/textures/mercury.jpg",
-  Venus: "/textures/venus.jpg",
-  Neptune: "/textures/neptune.jpg",
-  Uranus: "/textures/uranus.jpg",
-  Pluto: "/textures/pluto.jpg",
-  Saturn: "/textures/saturn.jpg",
-  Jupiter: "/textures/jupiter.jpg",
-};
-
-const Planet = ({ planet, onClick }) => {
-  // Pick texture path based on planet name
-  const texturePath = useMemo(() => {
-    return planetTextures[planet.name] || fallbackTexture;
-  }, [planet.name]);
-
-  // Load texture
-  // Always call useLoader unconditionally
-  const texture = useLoader(TextureLoader, texturePath);
-
-  // If texture loading fails, fallback to default texture (handled by three.js, but you can add error handling if needed)
-  // Optionally, you can use Suspense or error boundaries for more robust error handling.
+  useFrame((_, delta) => {
+    if (data.orbitRadius > 0) {
+      angle.current += (data.orbitSpeed || 0.3) * delta;
+      meshRef.current.position.x = Math.cos(angle.current) * data.orbitRadius;
+      meshRef.current.position.z = Math.sin(angle.current) * data.orbitRadius;
+    }
+    meshRef.current.rotation.y += data.rotationSpeed || 0.01;
+  });
 
   return (
-    <mesh
-      position={planet.position && planet.position.length === 3 ? planet.position : [0, 0, 0]}
-      onClick={() => onClick(planet)}
-      castShadow={true}
-      receiveShadow={true}
-    >
-      <sphereGeometry args={[1, 32, 32]} />
-      <meshStandardMaterial map={texture} />
-    </mesh>
+    <group>
+      <mesh
+        ref={meshRef}
+        onClick={() =>
+          onSelect({
+            ...data,
+            worldPos: meshRef.current.getWorldPosition(new THREE.Vector3()),
+          })
+        }
+      >
+        <sphereGeometry args={[data.size, 64, 64]} />
+        <meshStandardMaterial map={tex} />
+      </mesh>
+      {data.orbitRadius > 0 && <OrbitRing radius={data.orbitRadius} />}
+    </group>
   );
-};
-Planet.propTypes = {
-  planet: PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    position: PropTypes.arrayOf(PropTypes.number).isRequired,
-  }).isRequired,
-  onClick: PropTypes.func.isRequired,
-};
+}
 
-export default Planet;
+Planet.propTypes = {
+  data: PropTypes.shape({
+    texture: PropTypes.string,
+    orbitRadius: PropTypes.number,
+    orbitSpeed: PropTypes.number,
+    rotationSpeed: PropTypes.number,
+    size: PropTypes.number,
+  }).isRequired,
+  onSelect: PropTypes.func.isRequired,
+};
 
